@@ -50,7 +50,7 @@
   .bar button { flex: 1; max-width: 420px; padding: 14px; border-radius: 12px; border: 0; font-size: 16px; font-weight: 600; background: var(--accent); color: #fff; }
   .bar button:disabled { opacity: .5; }
   .bar button.sec { background: #333; flex: 0 0 auto; padding-inline: 18px; }
-  #file { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  #file { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
   #personView { position: fixed; inset: 0; background: var(--bg); z-index: 5; overflow-y: auto; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: 40px; }
   #personView .head { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
@@ -319,7 +319,7 @@ function render() {
     b.innerHTML = `<img alt=""><div class="info"><div class="name"></div><div class="count"></div></div>`;
     b.querySelector('img').src = p.cover.img;
     b.querySelector('.name').textContent = p.name || `אדם ${i + 1}`;
-    b.querySelector('.count').textContent = `${p.shown.length} תמונות`;
+    b.querySelector('.count').textContent = p.shown.length === 1 ? 'תמונה אחת' : `${p.shown.length} תמונות`;
     b.onclick = () => openPerson(p.key);
     grid.appendChild(b);
   });
