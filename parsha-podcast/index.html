@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>פודקאסט פרשת השבוע</title>
+<style>
+  :root { color-scheme: dark; --bg: #111; --card: #1e1e1e; --line: #333; --text: #fff; --muted: #9a9a9a; --accent: #25a55f; --accent2: #4a8df0; --danger: #e5534b; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; padding: 16px; padding-bottom: 60px; max-width: 720px; margin-inline: auto; line-height: 1.5; }
+  h1 { font-size: 22px; margin: 8px 0 4px; }
+  h2 { font-size: 18px; margin: 0 0 10px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .hidden { display: none !important; }
+  .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 16px; }
+  label { display: block; color: var(--muted); font-size: 14px; margin: 10px 0 4px; }
+  select, input[type=text], input[type=password], textarea { width: 100%; font: inherit; color: var(--text); background: #2a2a2a; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  textarea { min-height: 90px; font-size: 14px; }
+  button, .btn { font: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 11px 14px; background: #333; color: #fff; text-decoration: none; display: inline-block; text-align: center; }
+  button:disabled { opacity: .5; cursor: default; }
+  .primary { background: var(--accent); font-weight: 600; }
+  .blue { background: var(--accent2); font-weight: 600; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .row > * { flex: 1 1 140px; }
+  .check { display: flex; gap: 8px; align-items: center; color: var(--text); margin-top: 10px; }
+  .check input { width: 18px; height: 18px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tabs button { flex: 1; background: var(--card); border: 2px solid transparent; }
+  .tabs button.on { border-color: var(--accent); }
+  #preview { max-height: 180px; overflow: auto; white-space: pre-wrap; font-size: 14px; background: #161616; border-radius: 10px; padding: 10px; margin-top: 10px; color: #ddd; }
+  .meta { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  ol { padding-inline-start: 22px; margin: 6px 0; }
+  ol li { margin-bottom: 8px; }
+  .msg { font-size: 15px; margin-top: 10px; }
+  .msg.err { color: var(--danger); }
+  .progress { height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  audio { width: 100%; margin-top: 12px; }
+  details summary { cursor: pointer; font-weight: 600; }
+  .note { font-size: 13px; color: var(--muted); }
+  a { color: #7fb2ff; }
+</style>
+</head>
+<body>
+
+<h1>🎧 פודקאסט פרשת השבוע</h1>
+<p class="sub">בוחרים פרשה, האפליקציה מביאה את הטקסט המלא מספריא, ומכינה ממנו פודקאסט להאזנה – גם בלי אינטרנט.</p>
+
+<!-- שלב 1: בחירת פרשה -->
+<div class="card">
+  <h2>1. בחירת פרשה</h2>
+  <select id="parsha"></select>
+  <label class="check"><input type="checkbox" id="israel" checked> לוח פרשות של ארץ ישראל</label>
+  <label>שפת הטקסט</label>
+  <select id="textLang">
+    <option value="both">עברית + אנגלית</option>
+    <option value="he">עברית בלבד</option>
+    <option value="en">אנגלית בלבד</option>
+  </select>
+  <div class="row"><button class="primary" id="loadBtn">הבאת הטקסט</button></div>
+  <div class="msg" id="loadMsg"></div>
+  <div id="textBox" class="hidden">
+    <div class="meta" id="textMeta"></div>
+    <div id="preview"></div>
+  </div>
+</div>
+
+<!-- שלב 2: הכנת הפודקאסט -->
+<div id="step2" class="hidden">
+  <div class="tabs">
+    <button id="tabNb" class="on">דרך NotebookLM</button>
+    <button id="tabAuto">אוטומטי (Gemini)</button>
+  </div>
+
+  <!-- NotebookLM -->
+  <div class="card" id="nbCard">
+    <h2>2. פודקאסט ב-NotebookLM</h2>
+    <p class="note">Google לא מאפשרת לאפליקציה חיצונית לפתוח מחברת ב-NotebookLM בשבילכם, אז יש כאן כמה לחיצות ידניות – אבל הטקסט כבר מוכן.</p>
+    <div class="row">
+      <button class="blue" id="shareTxt">שיתוף הטקסט כקובץ</button>
+      <button id="copyTxt">העתקת הטקסט</button>
+    </div>
+    <div class="row">
+      <button id="saveTxt">שמירת הטקסט כקובץ</button>
+      <a class="btn" href="https://notebooklm.google.com/" target="_blank" rel="noopener">פתיחת NotebookLM ↗</a>
+    </div>
+    <ol class="msg">
+      <li>ב-NotebookLM: <b>מחברת חדשה</b> (Create new).</li>
+      <li>במסך הוספת מקור: בוחרים <b>"טקסט שהועתק"</b> (Copied text) ומדביקים. או: משתפים את הקובץ ישר לאפליקציית NotebookLM / מעלים את הקובץ שנשמר.</li>
+      <li>בלשונית <b>Studio</b>: לוחצים על העיפרון ליד <b>סקירה קולית</b> (Audio Overview), בוחרים שפה (למשל עברית) ומדביקים את ההנחיה שלמטה. לוחצים <b>יצירה</b>. זה לוקח כמה דקות.</li>
+      <li>להאזנה בלי אינטרנט: באפליקציית NotebookLM לוחצים ⋮ ליד הסקירה ← <b>הורדה</b>. באתר: ⋮ ← Download.</li>
+    </ol>
+    <label>הנחיה מומלצת לסקירה הקולית</label>
+    <textarea id="nbPrompt" readonly></textarea>
+    <div class="row"><button id="copyPrompt">העתקת ההנחיה</button></div>
+    <div class="msg" id="nbMsg"></div>
+  </div>
+
+  <!-- אוטומטי -->
+  <div class="card hidden" id="autoCard">
+    <h2>2. פודקאסט אוטומטי עם Gemini</h2>
+    <p class="note">כאן הכל קורה לבד: Gemini מקבל את הטקסט של הפרשה כמקור יחיד, כותב שיחה בין שני מגישים, ומקריא אותה בשני קולות. בסוף מקבלים קובץ שמע לשמירה בטלפון.</p>
+    <details id="keyBox">
+      <summary>מפתח Gemini (פעם אחת בלבד)</summary>
+      <p class="note">מקבלים מפתח בחינם ב-<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> ← Create API key, ומדביקים כאן. המפתח נשמר רק בטלפון שלכם ונשלח רק ל-Google.</p>
+      <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off">
+      <label>מודל לכתיבת השיחה</label>
+      <input type="text" id="textModel" dir="ltr">
+      <label>מודל הקראה</label>
+      <input type="text" id="ttsModel" dir="ltr">
+      <div class="row"><button id="saveKey">שמירה</button></div>
+    </details>
+    <label>שפת הפודקאסט</label>
+    <select id="podLang">
+      <option value="he">עברית</option>
+      <option value="en">English</option>
+    </select>
+    <label>אורך</label>
+    <select id="podLen">
+      <option value="short">קצר (כ-5 דקות)</option>
+      <option value="medium" selected>בינוני (כ-10 דקות)</option>
+      <option value="long">ארוך (כ-20 דקות)</option>
+    </select>
+    <label>דגש מיוחד (לא חובה)</label>
+    <input type="text" id="focus" placeholder="למשל: מתאים לילדים, או התמקדות בפרשנים">
+    <div class="row"><button class="primary" id="makeBtn">יצירת פודקאסט</button></div>
+    <div id="progBox" class="hidden">
+      <div class="msg" id="progMsg"></div>
+      <div class="progress"><div id="progBar"></div></div>
+    </div>
+    <div class="msg" id="autoMsg"></div>
+    <div id="result" class="hidden">
+      <audio id="player" controls></audio>
+      <div class="row">
+        <button class="primary" id="dlAudio">הורדה לטלפון</button>
+        <button class="blue" id="shareAudio">שיתוף / שמירה</button>
+      </div>
+      <details style="margin-top:12px"><summary>תמליל השיחה</summary><div id="script" style="white-space:pre-wrap;font-size:14px;margin-top:8px"></div></details>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== רשימת הפרשות (פרקים ופסוקים לפי ספריא) =====
+const PARSHIOT = [
+  ["בראשית","Genesis 1:1-6:8"],["נח","Genesis 6:9-11:32"],["לך לך","Genesis 12:1-17:27"],["וירא","Genesis 18:1-22:24"],
+  ["חיי שרה","Genesis 23:1-25:18"],["תולדות","Genesis 25:19-28:9"],["ויצא","Genesis 28:10-32:3"],["וישלח","Genesis 32:4-36:43"],
+  ["וישב","Genesis 37:1-40:23"],["מקץ","Genesis 41:1-44:17"],["ויגש","Genesis 44:18-47:27"],["ויחי","Genesis 47:28-50:26"],
+  ["שמות","Exodus 1:1-6:1"],["וארא","Exodus 6:2-9:35"],["בא","Exodus 10:1-13:16"],["בשלח","Exodus 13:17-17:16"],
+  ["יתרו","Exodus 18:1-20:23"],["משפטים","Exodus 21:1-24:18"],["תרומה","Exodus 25:1-27:19"],["תצוה","Exodus 27:20-30:10"],
+  ["כי תשא","Exodus 30:11-34:35"],["ויקהל","Exodus 35:1-38:20"],["פקודי","Exodus 38:21-40:38"],
+  ["ויקרא","Leviticus 1:1-5:26"],["צו","Leviticus 6:1-8:36"],["שמיני","Leviticus 9:1-11:47"],["תזריע","Leviticus 12:1-13:59"],
+  ["מצורע","Leviticus 14:1-15:33"],["אחרי מות","Leviticus 16:1-18:30"],["קדושים","Leviticus 19:1-20:27"],["אמור","Leviticus 21:1-24:23"],
+  ["בהר","Leviticus 25:1-26:2"],["בחוקותי","Leviticus 26:3-27:34"],
+  ["במדבר","Numbers 1:1-4:20"],["נשא","Numbers 4:21-7:89"],["בהעלותך","Numbers 8:1-12:16"],["שלח","Numbers 13:1-15:41"],
+  ["קרח","Numbers 16:1-18:32"],["חוקת","Numbers 19:1-22:1"],["בלק","Numbers 22:2-25:9"],["פנחס","Numbers 25:10-30:1"],
+  ["מטות","Numbers 30:2-32:42"],["מסעי","Numbers 33:1-36:13"],
+  ["דברים","Deuteronomy 1:1-3:22"],["ואתחנן","Deuteronomy 3:23-7:11"],["עקב","Deuteronomy 7:12-11:25"],["ראה","Deuteronomy 11:26-16:17"],
+  ["שופטים","Deuteronomy 16:18-21:9"],["כי תצא","Deuteronomy 21:10-25:19"],["כי תבוא","Deuteronomy 26:1-29:8"],["נצבים","Deuteronomy 29:9-30:20"],
+  ["וילך","Deuteronomy 31:1-31:30"],["האזינו","Deuteronomy 32:1-32:52"],["וזאת הברכה","Deuteronomy 33:1-34:12"],
+];
+const BOOK_HE = { Genesis: "בראשית", Exodus: "שמות", Leviticus: "ויקרא", Numbers: "במדבר", Deuteronomy: "דברים" };
+const DEFAULT_TEXT_MODEL = "gemini-3.8-flash";
+const DEFAULT_TTS_MODEL = "gemini-3.8-flash-tts";
+const API = "https://generativelanguage.googleapis.com/v1beta/interactions";
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+let current = null;   // { name, ref, text }
+let audioBlob = null, audioName = "";
+
+// ===== בחירת פרשה =====
+function fillSelect(weekly) {
+  const sel = $("parsha");
+  sel.innerHTML = "";
+  if (weekly) sel.add(new Option(`⭐ השבוע: ${weekly.name}`, "week"));
+  PARSHIOT.forEach(([name, ref], i) => sel.add(new Option(`פרשת ${name}`, String(i))));
+  sel.weekly = weekly;
+}
+
+async function loadWeekly() {
+  // Hebcal: הפרשה של השבת הקרובה (ירושלים / ניו יורק לחו"ל)
+  const israel = $("israel").checked;
+  const geo = israel ? "281184" : "5128581";
+  try {
+    const r = await fetch(`https://www.hebcal.com/shabbat?cfg=json&geonameid=${geo}&M=on&leyning=on${israel ? "&i=on" : ""}`);
+    const j = await r.json();
+    const item = (j.items || []).find(x => x.category === "parashat");
+    if (!item) throw 0;
+    const name = (item.hebrew || item.title).replace(/^פרשת\s*/, "");
+    let ref = item.leyning && item.leyning.torah;
+    if (!ref) {
+      const hit = PARSHIOT.find(([n]) => n === name.replace(/[־-]/g, " "));
+      ref = hit && hit[1];
+    }
+    if (!ref) throw 0;
+    fillSelect({ name, ref });
+  } catch {
+    fillSelect(null);
+  }
+}
+
+function chosen() {
+  const v = $("parsha").value;
+  if (v === "week") return $("parsha").weekly;
+  const [name, ref] = PARSHIOT[+v];
+  return { name, ref };
+}
+
+// ===== הבאת הטקסט מספריא =====
+function cleanHe(s) {
+  return s.replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;|&thinsp;/g, " ")
+    .replace(/\{[פס]\}/g, "")
+    .replace(/[֑-ֽ֯׀]/g, "")  // טעמי המקרא, מתג ופסק
+    .replace(/\s+/g, " ").trim();
+}
+function cleanEn(s) {
+  return s.replace(/<sup[^>]*>.*?<\/sup>\s*<i class="footnote">.*?<\/i>/g, "")
+    .replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// מחזיר רשימה של {ch, v, t} לפי מבנה הטקסט של ספריא
+function versesOf(text, ref, clean) {
+  const m = ref.match(/(\d+):(\d+)-(?:(\d+):)?(\d+)$/);
+  const startCh = +m[1], startV = +m[2];
+  const out = [];
+  const chapters = Array.isArray(text[0]) ? text : [text];
+  chapters.forEach((arr, ci) => {
+    arr.forEach((t, vi) => {
+      const v = ci === 0 ? startV + vi : vi + 1;
+      if (t) out.push({ ch: startCh + ci, v, t: clean(t) });
+    });
+  });
+  return out;
+}
+
+async function fetchSefaria(ref, lang) {
+  const base = "https://www.sefaria.org/api/v3/texts/" + encodeURIComponent(ref);
+  const vers = lang === "both" ? "version=hebrew&version=english" : `version=${lang === "he" ? "hebrew" : "english"}`;
+  const r = await fetch(`${base}?${vers}&return_format=text_only`);
+  if (!r.ok) throw new Error("ספריא החזירה שגיאה " + r.status);
+  const j = await r.json();
+  const pick = l => (j.versions || []).find(v => (v.actualLanguage || v.language) === l);
+  return { he: pick("he"), en: pick("en") };
+}
+
+const heNum = n => {
+  const ones = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"], tens = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"];
+  if (n === 15) return "טו"; if (n === 16) return "טז";
+  return tens[Math.floor(n / 10)] + ones[n % 10];
+};
+
+function buildSource(p, lang, data) {
+  const book = p.ref.split(" ")[0];
+  const he = data.he ? versesOf(data.he.text, p.ref, cleanHe) : [];
+  const en = data.en ? versesOf(data.en.text, p.ref, cleanEn) : [];
+  const enMap = new Map(en.map(x => [x.ch + ":" + x.v, x.t]));
+  const rows = (he.length ? he : en).map(x => x.ch + ":" + x.v);
+  let out = `פרשת ${p.name} – ספר ${BOOK_HE[book]}\n${p.ref}\n`;
+  out += `מקור: ספריא (sefaria.org)${data.he ? " – " + data.he.versionTitle : ""}${data.en ? " / " + data.en.versionTitle : ""}\n`;
+  let lastCh = null;
+  const heMap = new Map(he.map(x => [x.ch + ":" + x.v, x.t]));
+  rows.forEach(key => {
+    const [ch, v] = key.split(":").map(Number);
+    if (ch !== lastCh) { out += `\n=== ${BOOK_HE[book]} פרק ${heNum(ch)} / ${book} ${ch} ===\n`; lastCh = ch; }
+    if (heMap.has(key)) out += `(${heNum(v)}) ${heMap.get(key)}\n`;
+    if (enMap.has(key)) out += `[${ch}:${v}] ${enMap.get(key)}\n`;
+    if (lang === "both") out += "\n";
+  });
+  return { text: out.trim() + "\n", verses: rows.length };
+}
+
+$("loadBtn").onclick = async () => {
+  const p = chosen(), lang = $("textLang").value;
+  $("loadMsg").className = "msg"; $("loadMsg").textContent = "מביא את הטקסט מספריא…";
+  $("loadBtn").disabled = true;
+  try {
+    const data = await fetchSefaria(p.ref, lang);
+    if (!data.he && !data.en) throw new Error("לא נמצא טקסט");
+    const src = buildSource(p, lang, data);
+    current = { ...p, text: src.text };
+    $("textMeta").textContent = `פרשת ${p.name} · ${p.ref} · ${src.verses} פסוקים · ${src.text.length.toLocaleString()} תווים`;
+    $("preview").textContent = src.text.slice(0, 3000) + (src.text.length > 3000 ? "\n…" : "");
+    $("textBox").classList.remove("hidden");
+    $("step2").classList.remove("hidden");
+    $("nbPrompt").value = nbPrompt(p.name);
+    $("loadMsg").textContent = "✓ הטקסט מוכן";
+  } catch (e) {
+    $("loadMsg").className = "msg err"; $("loadMsg").textContent = "לא הצלחתי להביא את הטקסט: " + e.message;
+  } finally { $("loadBtn").disabled = false; }
+};
+
+// ===== NotebookLM =====
+function nbPrompt(name) {
+  return `זהו הטקסט המלא של פרשת ${name}. ספרו את סיפור הפרשה לפי הסדר, הדגישו את הרגעים והדמויות המרכזיים, ציינו מקומות בטקסט (פרק ופסוק), העלו שאלות ורעיונות לדיון סביב שולחן השבת, וסיימו במסר אחד לשבוע. היצמדו לטקסט ואל תמציאו פרטים.`;
+}
+const txtFile = () => new File([current.text], `parashat-${current.ref.split(" ")[0].toLowerCase()}-${current.name.replace(/\s+/g, "-")}.txt`, { type: "text/plain" });
+
+function saveFile(file) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(file); a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+async function shareFile(file, title, msgEl) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title }); } catch (e) { if (e.name !== "AbortError") msgEl.textContent = "השיתוף נכשל, נסו שמירה."; }
+  } else {
+    saveFile(file); msgEl.textContent = "הטלפון לא תומך בשיתוף קבצים מכאן – הקובץ נשמר במקום זאת.";
+  }
+}
+async function copy(text, msgEl, ok) {
+  try { await navigator.clipboard.writeText(text); msgEl.textContent = ok; }
+  catch { msgEl.textContent = "ההעתקה נכשלה – נסו שמירה כקובץ."; }
+}
+$("shareTxt").onclick = () => shareFile(txtFile(), `פרשת ${current.name}`, $("nbMsg"));
+$("saveTxt").onclick = () => saveFile(txtFile());
+$("copyTxt").onclick = () => copy(current.text, $("nbMsg"), "✓ הטקסט הועתק. עכשיו פתחו את NotebookLM והדביקו.");
+$("copyPrompt").onclick = () => copy($("nbPrompt").value, $("nbMsg"), "✓ ההנחיה הועתקה.");
+
+$("tabNb").onclick = () => { $("tabNb").classList.add("on"); $("tabAuto").classList.remove("on"); $("nbCard").classList.remove("hidden"); $("autoCard").classList.add("hidden"); };
+$("tabAuto").onclick = () => { $("tabAuto").classList.add("on"); $("tabNb").classList.remove("on"); $("autoCard").classList.remove("hidden"); $("nbCard").classList.add("hidden"); };
+
+// ===== Gemini: כתיבת השיחה =====
+async function gemini(body, key) {
+  for (let attempt = 0; ; attempt++) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(body) });
+    if (r.ok) return r.json();
+    const err = await r.text();
+    if ((r.status === 429 || r.status >= 500) && attempt < 3) { await new Promise(res => setTimeout(res, 4000 * (attempt + 1))); continue; }
+    let m = err; try { m = JSON.parse(err).error.message; } catch {}
+    throw new Error(`Gemini (${r.status}): ${m}`);
+  }
+}
+// מוציא את כל בלוקי התוכן מסוג מסוים מתשובת Interactions
+function outputs(j, type) {
+  if (type === "text" && typeof j.output_text === "string") return [{ text: j.output_text }];
+  if (type === "audio" && j.output_audio && j.output_audio.data) return [j.output_audio];
+  const steps = (j.steps || j.outputs || []).filter(s => !s.type || s.type === "model_output");
+  return steps.flatMap(s => s.content || [s]).filter(c => c.type === type);
+}
+
+const LEN = { short: [700, 5], medium: [1400, 10], long: [2600, 20] };
+
+async function writeScript(key, lang, len, focus) {
+  const [words, mins] = LEN[len];
+  const he = lang === "he";
+  const prompt = `${he ? "כתבו בעברית" : "Write in English"} תסריט לפודקאסט של כ-${mins} דקות (בערך ${words} מילים) על פרשת ${current.name}.
+שני מגישים: A (גבר) ו-B (אישה), בשיחה חמה, סקרנית וזורמת, כמו "סקירה קולית" של NotebookLM.
+המקור היחיד הוא הטקסט המלא של הפרשה שמופיע למטה. ספרו את מהלך הפרשה לפי הסדר, ציטטו פסוקים קצרים, הסבירו מושגים, העלו שאלות מעניינות ורעיונות לשיחה בשולחן השבת, וסיימו במסר לשבוע.
+היצמדו לטקסט. אם מזכירים פרשנות מסורתית (רש"י, רמב"ן וכו') – רק דברים ידועים ובזהירות. בלי להמציא.${focus ? "\nדגש מיוחד: " + focus : ""}
+פורמט חובה: כל שורה היא תור דיבור אחד, ומתחילה ב-"A: " או ב-"B: ". בלי כותרות, בלי הוראות במה, בלי סימוני Markdown. מספרים וקיצורים – כתבו במילים כמו שהם נקראים בקול.
+
+===== הטקסט של הפרשה =====
+${current.text}`;
+  const j = await gemini({ model: $("textModel").value.trim() || DEFAULT_TEXT_MODEL, input: prompt }, key);
+  const text = outputs(j, "text").map(c => c.text).join("\n");
+  const turns = [];
+  text.split("\n").forEach(line => {
+    const m = line.match(/^\s*[*_]*\s*([AB])\s*[*_]*\s*[:：]\s*(.+)$/);
+    if (m) turns.push({ sp: m[1], t: m[2].replace(/[*_#]/g, "").trim() });
+    else if (line.trim() && turns.length) turns[turns.length - 1].t += " " + line.trim();
+  });
+  if (turns.length < 4) throw new Error("Gemini לא החזיר תסריט בפורמט הצפוי. נסו שוב.");
+  return turns;
+}
+
+// ===== Gemini: הקראה =====
+const RATE = 24000;
+function b64bytes(b64) {
+  const bin = atob(b64), u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+// אם חזר WAV – מוציאים רק את נתוני השמע
+function stripWav(u) {
+  if (!(u[0] === 82 && u[1] === 73 && u[2] === 70 && u[3] === 70)) return u;
+  const dv = new DataView(u.buffer);
+  for (let i = 12; i + 8 <= u.length;) {
+    const id = String.fromCharCode(u[i], u[i + 1], u[i + 2], u[i + 3]), size = dv.getUint32(i + 4, true);
+    if (id === "data") return u.subarray(i + 8, i + 8 + size);
+    i += 8 + size + (size & 1);
+  }
+  return u.subarray(44);
+}
+function chunkTurns(turns, max = 1500) {
+  const chunks = []; let cur = [], n = 0;
+  turns.forEach(t => {
+    if (n + t.t.length > max && cur.length) { chunks.push(cur); cur = []; n = 0; }
+    cur.push(t); n += t.t.length;
+  });
+  if (cur.length) chunks.push(cur);
+  return chunks;
+}
+async function speak(key, turns) {
+  const body = {
+    model: $("ttsModel").value.trim() || DEFAULT_TTS_MODEL,
+    input: [{ type: "user_input", content: turns.map(t => ({
+      type: "text", text: t.t,
+      annotations: [{ type: "speech_metadata", speaker: t.sp, style: "warm, curious podcast host" }],
+    })) }],
+    response_format: { type: "audio", mime_type: "audio/l16", sample_rate: RATE },
+    generation_config: { speech_config: { mode: "conversational", speakers: [{ speaker: "A", voice: "Puck" }, { speaker: "B", voice: "Kore" }] } },
+  };
+  const j = await gemini(body, key);
+  const parts = outputs(j, "audio").filter(a => a.data);
+  if (!parts.length) throw new Error("לא התקבל שמע מ-Gemini");
+  return concat(parts.map(a => stripWav(b64bytes(a.data))));
+}
+function concat(arrs) {
+  const out = new Uint8Array(arrs.reduce((s, a) => s + a.length, 0));
+  let o = 0; arrs.forEach(a => { out.set(a, o); o += a.length; });
+  return out;
+}
+function wav(pcm) {
+  const h = new DataView(new ArrayBuffer(44)), w = (o, s) => [...s].forEach((c, i) => h.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); h.setUint32(4, 36 + pcm.length, true); w(8, "WAVE"); w(12, "fmt ");
+  h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, 1, true);
+  h.setUint32(24, RATE, true); h.setUint32(28, RATE * 2, true); h.setUint16(32, 2, true); h.setUint16(34, 16, true);
+  w(36, "data"); h.setUint32(40, pcm.length, true);
+  return new Blob([h.buffer, pcm], { type: "audio/wav" });
+}
+// המרה ל-MP3 (קובץ קטן פי 10). אם הספרייה לא נטענת – נשארים עם WAV
+function loadLame() {
+  return new Promise((res, rej) => {
+    if (window.lamejs) return res();
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js";
+    s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+}
+async function mp3(pcm) {
+  await loadLame();
+  const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
+  const enc = new lamejs.Mp3Encoder(1, RATE, 64), out = [];
+  for (let i = 0; i < samples.length; i += 1152) {
+    const b = enc.encodeBuffer(samples.subarray(i, i + 1152));
+    if (b.length) out.push(new Uint8Array(b));
+    if (i % (1152 * 400) === 0) await new Promise(r => setTimeout(r));
+  }
+  const end = enc.flush(); if (end.length) out.push(new Uint8Array(end));
+  return new Blob(out, { type: "audio/mpeg" });
+}
+
+function progress(msg, frac) {
+  $("progBox").classList.remove("hidden");
+  $("progMsg").textContent = msg;
+  $("progBar").style.width = Math.round(frac * 100) + "%";
+}
+
+$("makeBtn").onclick = async () => {
+  const key = $("apiKey").value.trim() || store.get("geminiKey");
+  if (!key) { $("keyBox").open = true; $("autoMsg").className = "msg err"; $("autoMsg").textContent = "צריך קודם להדביק מפתח Gemini."; return; }
+  $("makeBtn").disabled = true; $("autoMsg").textContent = ""; $("autoMsg").className = "msg"; $("result").classList.add("hidden");
+  try {
+    progress("Gemini קורא את הפרשה וכותב את השיחה… (עד דקה)", 0.05);
+    const turns = await writeScript(key, $("podLang").value, $("podLen").value, $("focus").value.trim());
+    $("script").textContent = turns.map(t => `${t.sp === "A" ? "🎙️ א" : "🎙️ ב"}: ${t.t}`).join("\n\n");
+    const chunks = chunkTurns(turns), pcm = [];
+    for (let i = 0; i < chunks.length; i++) {
+      progress(`מקליט את הפודקאסט… חלק ${i + 1} מתוך ${chunks.length}`, 0.1 + 0.8 * i / chunks.length);
+      pcm.push(await speak(key, chunks[i]));
+    }
+    const all = concat(pcm);
+    progress("מכין קובץ להורדה…", 0.95);
+    const slug = `parashat-${current.name.replace(/\s+/g, "-")}`;
+    try { audioBlob = await mp3(all); audioName = slug + ".mp3"; }
+    catch { audioBlob = wav(all); audioName = slug + ".wav"; }
+    $("player").src = URL.createObjectURL(audioBlob);
+    $("result").classList.remove("hidden");
+    const mins = Math.round(all.length / 2 / RATE / 60);
+    progress(`✓ מוכן! כ-${mins} דקות האזנה`, 1);
+  } catch (e) {
+    $("progBox").classList.add("hidden");
+    $("autoMsg").className = "msg err"; $("autoMsg").textContent = e.message;
+  } finally { $("makeBtn").disabled = false; }
+};
+$("dlAudio").onclick = () => saveFile(new File([audioBlob], audioName, { type: audioBlob.type }));
+$("shareAudio").onclick = () => shareFile(new File([audioBlob], audioName, { type: audioBlob.type }), `פרשת ${current.name}`, $("autoMsg"));
+
+// ===== הגדרות =====
+$("apiKey").value = store.get("geminiKey") || "";
+$("textModel").value = store.get("textModel") || DEFAULT_TEXT_MODEL;
+$("ttsModel").value = store.get("ttsModel") || DEFAULT_TTS_MODEL;
+$("saveKey").onclick = () => {
+  store.set("geminiKey", $("apiKey").value.trim());
+  store.set("textModel", $("textModel").value.trim());
+  store.set("ttsModel", $("ttsModel").value.trim());
+  $("keyBox").open = false; $("autoMsg").className = "msg"; $("autoMsg").textContent = "✓ נשמר";
+};
+if (!store.get("geminiKey")) $("keyBox").open = true;
+$("israel").onchange = loadWeekly;
+
+fillSelect(null);
+loadWeekly();
+</script>
+</body>
+</html>
